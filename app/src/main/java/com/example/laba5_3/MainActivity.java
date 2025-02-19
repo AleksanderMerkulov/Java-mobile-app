@@ -1,5 +1,8 @@
 package com.example.laba5_3;
 
+import static android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION;
+
+import androidx.activity.EdgeToEdge;
 import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -14,11 +17,17 @@ import androidx.camera.core.Preview;
 import androidx.camera.lifecycle.ProcessCameraProvider;
 import androidx.camera.view.PreviewView;
 import androidx.core.content.ContextCompat;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
@@ -31,143 +40,52 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 
 public class MainActivity extends AppCompatActivity {
-    Button capture, toggleFlash, flipCamera;
-    private PreviewView previewView;
-    int cameraFacing = CameraSelector.LENS_FACING_BACK;
-    private final ActivityResultLauncher<String> activityResultLauncher = registerForActivityResult(new ActivityResultContracts.RequestPermission(), new ActivityResultCallback<Boolean>() {
-        @Override
-        public void onActivityResult(Boolean result) {
-            if (result) {
-                startCamera(cameraFacing);
-            }
-        }
-    });
-    @SuppressLint("WrongViewCast")
+    final static int APP_STORAGE_ACCESS_REQUEST_CODE = 501; // Any value
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-
-        previewView = findViewById(R.id.cameraPreview);
-        capture = findViewById(R.id.button_take_photo);
-        toggleFlash = findViewById(R.id.button_flash);
-        flipCamera = findViewById(R.id.button_flip);
-
-        if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-            activityResultLauncher.launch(Manifest.permission.CAMERA);
-        } else {
-            startCamera(cameraFacing);
-        }
-
-        flipCamera.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if (cameraFacing == CameraSelector.LENS_FACING_BACK) {
-                    cameraFacing = CameraSelector.LENS_FACING_FRONT;
-                } else {
-                    cameraFacing = CameraSelector.LENS_FACING_BACK;
-                }
-                startCamera(cameraFacing);
-            }
+        EdgeToEdge.enable(this);
+        setContentView(R.layout.activity_main_2);
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
+            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
+            return insets;
         });
-    }
 
-    public void startCamera(int cameraFacing) {
-        int aspectRatio = aspectRatio(previewView.getWidth(), previewView.getHeight());
-        ListenableFuture<ProcessCameraProvider> listenableFuture = ProcessCameraProvider.getInstance(this);
+        Intent intent = new Intent(ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION, Uri.parse("package:" + "com.example.mobil_lab5"));
+        startActivityForResult(intent, APP_STORAGE_ACCESS_REQUEST_CODE);
 
-        listenableFuture.addListener(() -> {
-            try {
-                ProcessCameraProvider cameraProvider = (ProcessCameraProvider) listenableFuture.get();
 
-                Preview preview = new Preview.Builder().setTargetAspectRatio(aspectRatio).build();
-
-                ImageCapture imageCapture = new ImageCapture.Builder().setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
-                        .setTargetRotation(getWindowManager().getDefaultDisplay().getRotation()).build();
-
-                CameraSelector cameraSelector = new CameraSelector.Builder()
-                        .requireLensFacing(cameraFacing).build();
-
-                cameraProvider.unbindAll();
-
-                Camera camera = cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageCapture);
-
-                capture.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View view) {
-                        if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-                            activityResultLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE);
-                        }
-                        takePicture(imageCapture);
-                    }
-                });
-
-                toggleFlash.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View view) {
-                        setFlashIcon(camera);
-                    }
-                });
-
-                preview.setSurfaceProvider(previewView.getSurfaceProvider());
-            } catch (ExecutionException | InterruptedException e) {
-                e.printStackTrace();
-            }
-        }, ContextCompat.getMainExecutor(this));
-    }
-
-    public void takePicture(ImageCapture imageCapture) {
-        final File file = new File(getExternalFilesDir(null), System.currentTimeMillis() + ".jpg");
-        ImageCapture.OutputFileOptions outputFileOptions = new ImageCapture.OutputFileOptions.Builder(file).build();
-        imageCapture.takePicture(outputFileOptions, Executors.newCachedThreadPool(), new ImageCapture.OnImageSavedCallback() {
+        View.OnClickListener btnClick=new View.OnClickListener() {
             @Override
-            public void onImageSaved(@NonNull ImageCapture.OutputFileResults outputFileResults) {
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        Toast.makeText(MainActivity.this, "Image saved at: " + file.getPath(), Toast.LENGTH_SHORT).show();
-                    }
-                });
-                startCamera(cameraFacing);
+            public void onClick(View v) {
+                Log.d("myLogs",v.getId()+"");
+                Click(v.getId());
             }
-
-            @Override
-            public void onError(@NonNull ImageCaptureException exception) {
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        Toast.makeText(MainActivity.this, "Failed to save: " + exception.getMessage(), Toast.LENGTH_SHORT).show();
-                    }
-                });
-                startCamera(cameraFacing);
-            }
-        });
+        };
+        ((Button)findViewById(R.id.bMedia)).setOnClickListener(btnClick);
+        ((Button)findViewById(R.id.bCamera)).setOnClickListener(btnClick);
+        ((Button)findViewById(R.id.bGallery)).setOnClickListener(btnClick);
+        ((Button)findViewById(R.id.bGeo)).setOnClickListener(btnClick);
     }
 
-    private void setFlashIcon(Camera camera) {
-        if (camera.getCameraInfo().hasFlashUnit()) {
-            if (camera.getCameraInfo().getTorchState().getValue() == 0) {
-                camera.getCameraControl().enableTorch(true);
-//                toggleFlash.set;
-            } else {
-                camera.getCameraControl().enableTorch(false);
-//                toggleFlash.setImageResource(R.drawable.baseline_flash_on_24);
-            }
-        } else {
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    Toast.makeText(MainActivity.this, "Flash is not available currently", Toast.LENGTH_SHORT).show();
-                }
-            });
-        }
-    }
+    protected void Click(int view){
+        Intent intent=null;
+        Log.d("myLogs",view+"");
 
-    private int aspectRatio(int width, int height) {
-        double previewRatio = (double) Math.max(width, height) / Math.min(width, height);
-        if (Math.abs(previewRatio - 4.0 / 3.0) <= Math.abs(previewRatio - 16.0 / 9.0)) {
-            return AspectRatio.RATIO_4_3;
+        if (view == R.id.bMedia) {
+//            intent = new Intent(this, MediaActivity.class);
+        } else if (view == R.id.bGallery) {
+//            intent = new Intent(this, GalleryActivity.class);
+        } else if (view == R.id.bCamera) {
+            intent = new Intent(this, CameraActivity.class);
+        } else if (view == R.id.bGeo) {
+            intent = new Intent(this, GeoActivity.class);
         }
-        return AspectRatio.RATIO_16_9;
+        if(intent!=null){
+            Log.d("myLogs","Интент = "+intent.toString());
+            startActivity(intent);
+        }
     }
 }
