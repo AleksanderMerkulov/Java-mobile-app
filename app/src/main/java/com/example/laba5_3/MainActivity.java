@@ -75,9 +75,9 @@ public class MainActivity extends AppCompatActivity {
         Log.d("myLogs",view+"");
 
         if (view == R.id.bMedia) {
-//            intent = new Intent(this, MediaActivity.class);
+            intent = new Intent(this, VideoActivity.class);
         } else if (view == R.id.bGallery) {
-//            intent = new Intent(this, GalleryActivity.class);
+            intent = new Intent(this, MediaActivity.class);
         } else if (view == R.id.bCamera) {
             intent = new Intent(this, CameraActivity.class);
         } else if (view == R.id.bGeo) {
